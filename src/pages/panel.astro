@@ -1,0 +1,65 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Panel | Sistema de Postulaciones">
+  <main class="container panel-wrapper">
+    <section class="card panel-card">
+      <div class="panel-top">
+        <div>
+          <p class="label">Panel principal</p>
+          <h1>Bienvenido, <span id="logged-user">usuario</span></h1>
+        </div>
+        <button id="logout" class="outline" type="button">Cerrar sesión</button>
+      </div>
+
+      <nav class="menu">
+        <a class="menu-link" href="/postulaciones">Registrar postulaciones</a>
+        <a class="menu-link" href="/editar-postulaciones">Editar postulaciones</a>
+      </nav>
+
+      <div class="panel-grid">
+        <article class="mini card-soft"><h2>Postulaciones</h2><p id="total-post">0</p></article>
+        <article class="mini card-soft"><h2>En revisión</h2><p id="in-review">0</p></article>
+        <article class="mini card-soft"><h2>Aprobadas</h2><p id="approved">0</p></article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const auth = localStorage.getItem('auth');
+    const user = localStorage.getItem('user') || 'admin';
+    if (auth !== 'ok') window.location.href = '/login';
+
+    const posts = JSON.parse(localStorage.getItem('postulaciones') || '[]');
+    const review = posts.filter((p) => p.estado === 'En revisión').length;
+    const approved = posts.filter((p) => p.estado === 'Aprobada').length;
+
+    document.querySelector('#total-post').textContent = String(posts.length);
+    document.querySelector('#in-review').textContent = String(review);
+    document.querySelector('#approved').textContent = String(approved);
+
+    const loggedUser = document.querySelector('#logged-user');
+    if (loggedUser instanceof HTMLElement) loggedUser.textContent = user;
+
+    document.querySelector('#logout')?.addEventListener('click', () => {
+      localStorage.removeItem('auth');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    });
+  </script>
+
+  <style>
+    .panel-wrapper { min-height: 100vh; display: grid; place-items: center; padding: 2rem 0; }
+    .panel-card { width: min(980px, 100%); padding: 1.5rem; }
+    .panel-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .menu { display: flex; gap: 0.7rem; margin-top: 1rem; flex-wrap: wrap; }
+    .menu-link { text-decoration: none; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 9px; color: var(--primary); font-weight: 600; }
+    .panel-grid { margin-top: 1rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
+    .card-soft { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 0.9rem; }
+    .mini h2 { margin: 0 0 0.45rem; font-size: 1rem; color: var(--muted); }
+    .mini p { margin: 0; font-size: 1.5rem; font-weight: 800; }
+    .outline { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); padding: 0 0.75rem; background: transparent; color: var(--primary); font-weight: 600; cursor: pointer; }
+    @media (max-width: 720px) { .panel-top { flex-direction: column; align-items: flex-start; } .panel-grid { grid-template-columns: 1fr; } }
+  </style>
+</Layout>

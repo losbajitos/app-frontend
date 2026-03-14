@@ -1,0 +1,96 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Editar postulaciones">
+  <main class="container page">
+    <section class="card block">
+      <div class="head">
+        <h1>Editar postulaciones</h1>
+        <a href="/panel">Volver al panel</a>
+      </div>
+
+      <p class="subtitle">Selecciona una postulación para actualizar datos o eliminarla.</p>
+      <div id="list" class="list"></div>
+      <p id="empty" class="subtitle" hidden>No hay postulaciones registradas.</p>
+    </section>
+  </main>
+
+  <script>
+    if (localStorage.getItem('auth') !== 'ok') window.location.href = '/login';
+
+    const list = document.querySelector('#list');
+    const empty = document.querySelector('#empty');
+
+    const render = () => {
+      const posts = JSON.parse(localStorage.getItem('postulaciones') || '[]');
+      if (!list) return;
+      list.innerHTML = '';
+      if (!posts.length) {
+        if (empty instanceof HTMLElement) empty.hidden = false;
+        return;
+      }
+      if (empty instanceof HTMLElement) empty.hidden = true;
+
+      posts.forEach((post) => {
+        const row = document.createElement('article');
+        row.className = 'row';
+        row.innerHTML = `
+          <div>
+            <h3>${post.nombre}</h3>
+            <p>${post.puesto} · ${post.email} · <strong>${post.estado}</strong></p>
+          </div>
+          <div class="actions">
+            <button data-id="${post.id}" data-action="edit">Editar</button>
+            <button data-id="${post.id}" data-action="delete" class="danger">Eliminar</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    };
+
+    render();
+
+    list?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      const id = target.dataset.id;
+      const action = target.dataset.action;
+      const posts = JSON.parse(localStorage.getItem('postulaciones') || '[]');
+      const idx = posts.findIndex((p) => p.id === id);
+      if (idx < 0) return;
+
+      if (action === 'delete') {
+        posts.splice(idx, 1);
+        localStorage.setItem('postulaciones', JSON.stringify(posts));
+        render();
+        return;
+      }
+
+      if (action === 'edit') {
+        const nuevoNombre = prompt('Nuevo nombre', posts[idx].nombre) || posts[idx].nombre;
+        const nuevoPuesto = prompt('Nuevo puesto', posts[idx].puesto) || posts[idx].puesto;
+        const nuevoEstado = prompt('Nuevo estado (En revisión/Aprobada/Rechazada)', posts[idx].estado) || posts[idx].estado;
+        posts[idx] = { ...posts[idx], nombre: nuevoNombre, puesto: nuevoPuesto, estado: nuevoEstado };
+        localStorage.setItem('postulaciones', JSON.stringify(posts));
+        render();
+      }
+    });
+  </script>
+
+  <style>
+    .page { min-height: 100vh; padding: 2rem 0; }
+    .block { padding: 1.2rem; }
+    .head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .subtitle { color: var(--muted); }
+    .list { display: grid; gap: 0.7rem; margin-top: 1rem; }
+    .row { border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem; display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+    .row h3 { margin: 0 0 0.25rem; }
+    .row p { margin: 0; color: var(--muted); }
+    .actions { display: flex; gap: 0.45rem; }
+    button { min-height: 38px; border: 1px solid var(--border); border-radius: 9px; padding: 0 0.65rem; background: #fff; color: var(--primary); font-weight: 600; }
+    .danger { color: var(--danger); }
+    a { color: var(--primary); }
+    @media (max-width: 700px) { .row { flex-direction: column; align-items: flex-start; } }
+  </style>
+</Layout>

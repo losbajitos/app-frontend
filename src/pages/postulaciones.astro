@@ -1,0 +1,66 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Registrar postulaciones">
+  <main class="container page">
+    <section class="card block">
+      <div class="head">
+        <h1>Registrar postulaciones</h1>
+        <a href="/panel">Volver al panel</a>
+      </div>
+
+      <form id="post-form" class="grid">
+        <label>Nombre candidato<input id="nombre" required /></label>
+        <label>Puesto<input id="puesto" required /></label>
+        <label>Email<input id="email" type="email" required /></label>
+        <label>Estado
+          <select id="estado">
+            <option>En revisión</option>
+            <option>Aprobada</option>
+            <option>Rechazada</option>
+          </select>
+        </label>
+        <button type="submit">Guardar postulación</button>
+      </form>
+
+      <p id="ok" class="ok" hidden>Postulación registrada correctamente.</p>
+    </section>
+  </main>
+
+  <script>
+    if (localStorage.getItem('auth') !== 'ok') window.location.href = '/login';
+
+    const form = document.querySelector('#post-form');
+    const ok = document.querySelector('#ok');
+
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const postulaciones = JSON.parse(localStorage.getItem('postulaciones') || '[]');
+      const nueva = {
+        id: crypto.randomUUID(),
+        nombre: document.querySelector('#nombre')?.value?.trim() || '',
+        puesto: document.querySelector('#puesto')?.value?.trim() || '',
+        email: document.querySelector('#email')?.value?.trim() || '',
+        estado: document.querySelector('#estado')?.value || 'En revisión'
+      };
+      postulaciones.push(nueva);
+      localStorage.setItem('postulaciones', JSON.stringify(postulaciones));
+      if (ok instanceof HTMLElement) ok.hidden = false;
+      form.reset();
+    });
+  </script>
+
+  <style>
+    .page { min-height: 100vh; padding: 2rem 0; }
+    .block { padding: 1.2rem; }
+    .head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .grid { margin-top: 1rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+    label { display: grid; gap: 0.3rem; color: var(--muted); font-weight: 600; }
+    input, select, button { min-height: 42px; border: 1px solid var(--border); border-radius: 10px; padding: 0 0.75rem; font: inherit; }
+    button { grid-column: 1 / -1; background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+    .ok { color: var(--success); font-weight: 600; }
+    a { color: var(--primary); }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</Layout>

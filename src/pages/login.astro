@@ -1,0 +1,74 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Login | Sistema de Postulaciones">
+  <main class="container auth-wrapper">
+    <section class="card auth-card">
+      <p class="label">Acceso</p>
+      <h1>Iniciar sesión</h1>
+      <p class="subtitle">Ingresa para administrar postulaciones.</p>
+
+      <form id="login-form" class="form-grid">
+        <label>
+          Usuario
+          <input id="username" type="text" required />
+        </label>
+
+        <label>
+          Clave
+          <input id="password" type="password" required />
+        </label>
+
+        <button type="submit">Ingresar</button>
+      </form>
+
+      <p id="login-error" class="error" hidden>Credenciales inválidas.</p>
+      <p class="hint">¿No tienes cuenta? <a href="/registro">Regístrate aquí</a>.</p>
+      <p class="hint">Demo por defecto: <strong>admin / 1234</strong></p>
+    </section>
+  </main>
+
+  <script>
+    const loginForm = document.querySelector('#login-form');
+    const errorMessage = document.querySelector('#login-error');
+
+    const getUsers = () => {
+      const stored = localStorage.getItem('users');
+      const users = stored ? JSON.parse(stored) : [];
+      return [{ username: 'admin', password: '1234' }, ...users];
+    };
+
+    if (localStorage.getItem('auth') === 'ok') {
+      window.location.href = '/panel';
+    }
+
+    loginForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = document.querySelector('#username')?.value?.trim() || '';
+      const password = document.querySelector('#password')?.value || '';
+
+      const valid = getUsers().find((u) => u.username === username && u.password === password);
+      if (valid) {
+        localStorage.setItem('auth', 'ok');
+        localStorage.setItem('user', username);
+        window.location.href = '/panel';
+        return;
+      }
+
+      if (errorMessage instanceof HTMLElement) errorMessage.hidden = false;
+    });
+  </script>
+
+  <style>
+    .auth-wrapper { min-height: 100vh; display: grid; place-items: center; padding: 2rem 0; }
+    .auth-card { width: min(520px, 100%); padding: 1.5rem; }
+    .subtitle, .hint { color: var(--muted); margin-top: 0; }
+    .form-grid { display: grid; gap: 0.8rem; margin-top: 1rem; }
+    label { display: grid; gap: 0.35rem; font-size: 0.92rem; font-weight: 600; color: var(--muted); }
+    input, button { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); padding: 0 0.75rem; font: inherit; }
+    button { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; cursor: pointer; }
+    .error { color: var(--danger); font-weight: 600; margin-bottom: 0; }
+    a { color: var(--primary); }
+  </style>
+</Layout>
