@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+const googleClientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '';
 ---
 
 <Layout title="Login | Sistema de Postulaciones">
@@ -23,20 +25,88 @@ import Layout from '../layouts/Layout.astro';
         <button type="submit">Ingresar</button>
       </form>
 
+      <div class="divider"><span>o continúa con</span></div>
+      <div class="social-auth">
+        <button id="google-login" class="social-btn" type="button">Google (OAuth2)</button>
+        <button class="social-btn disabled" type="button" disabled>GitHub (próximamente)</button>
+        <button class="social-btn disabled" type="button" disabled>Microsoft (próximamente)</button>
+      </div>
+
+      <p id="social-error" class="error" hidden></p>
       <p id="login-error" class="error" hidden>Credenciales inválidas.</p>
       <p class="hint">¿No tienes cuenta? <a href="/registro">Regístrate aquí</a>.</p>
       <p class="hint">Demo por defecto: <strong>admin / 1234</strong></p>
+      <p class="hint small">
+        Para Google OAuth2 configura <code>PUBLIC_GOOGLE_CLIENT_ID</code> en tu entorno.
+      </p>
     </section>
   </main>
 
-  <script>
+  <script is:inline define:vars={{ googleClientId }}>
     const loginForm = document.querySelector('#login-form');
     const errorMessage = document.querySelector('#login-error');
+    const socialError = document.querySelector('#social-error');
+    const googleButton = document.querySelector('#google-login');
 
     const getUsers = () => {
       const stored = localStorage.getItem('users');
       const users = stored ? JSON.parse(stored) : [];
       return [{ username: 'admin', password: '1234' }, ...users];
+    };
+
+    const setSession = (username, provider = 'local') => {
+      localStorage.setItem('auth', 'ok');
+      localStorage.setItem('user', username);
+      localStorage.setItem('auth_provider', provider);
+      window.location.href = '/panel';
+    };
+
+    const decodeJwt = (token) => {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    };
+
+    const googleCallback = (response) => {
+      const payload = decodeJwt(response.credential);
+      if (!payload?.email) {
+        if (socialError instanceof HTMLElement) {
+          socialError.textContent = 'No se pudo leer el perfil de Google.';
+          socialError.hidden = false;
+        }
+        return;
+      }
+      setSession(payload.email, 'google');
+    };
+
+    const initGoogle = () => {
+      if (!googleClientId) {
+        if (socialError instanceof HTMLElement) {
+          socialError.textContent =
+            'Falta PUBLIC_GOOGLE_CLIENT_ID para habilitar Google OAuth2.';
+          socialError.hidden = false;
+        }
+        if (googleButton instanceof HTMLButtonElement) googleButton.disabled = true;
+        return;
+      }
+
+      if (!window.google?.accounts?.id) {
+        if (socialError instanceof HTMLElement) {
+          socialError.textContent = 'No fue posible cargar Google Identity Services.';
+          socialError.hidden = false;
+        }
+        return;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: googleCallback
+      });
+
+      googleButton?.addEventListener('click', () => {
+        if (socialError instanceof HTMLElement) socialError.hidden = true;
+        window.google.accounts.id.prompt();
+      });
     };
 
     if (localStorage.getItem('auth') === 'ok') {
@@ -45,30 +115,39 @@ import Layout from '../layouts/Layout.astro';
 
     loginForm?.addEventListener('submit', (event) => {
       event.preventDefault();
+      if (socialError instanceof HTMLElement) socialError.hidden = true;
       const username = document.querySelector('#username')?.value?.trim() || '';
       const password = document.querySelector('#password')?.value || '';
 
       const valid = getUsers().find((u) => u.username === username && u.password === password);
       if (valid) {
-        localStorage.setItem('auth', 'ok');
-        localStorage.setItem('user', username);
-        window.location.href = '/panel';
+        setSession(username, 'local');
         return;
       }
 
       if (errorMessage instanceof HTMLElement) errorMessage.hidden = false;
     });
+
+    initGoogle();
   </script>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
     .auth-wrapper { min-height: 100vh; display: grid; place-items: center; padding: 2rem 0; }
-    .auth-card { width: min(520px, 100%); padding: 1.5rem; }
+    .auth-card { width: min(560px, 100%); padding: 1.5rem; }
     .subtitle, .hint { color: var(--muted); margin-top: 0; }
+    .small { font-size: 0.85rem; }
     .form-grid { display: grid; gap: 0.8rem; margin-top: 1rem; }
     label { display: grid; gap: 0.35rem; font-size: 0.92rem; font-weight: 600; color: var(--muted); }
     input, button { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); padding: 0 0.75rem; font: inherit; }
     button { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; cursor: pointer; }
+    .divider { margin: 1rem 0 0.75rem; text-align: center; color: var(--muted); font-size: 0.9rem; }
+    .divider span { background: white; padding: 0 0.6rem; }
+    .social-auth { display: grid; gap: 0.55rem; }
+    .social-btn { background: #fff; color: #111827; border: 1px solid var(--border); }
+    .disabled { opacity: 0.6; cursor: not-allowed; }
     .error { color: var(--danger); font-weight: 600; margin-bottom: 0; }
-    a { color: var(--primary); }
+    a, code { color: var(--primary); }
   </style>
 </Layout>
