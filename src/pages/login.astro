@@ -76,6 +76,9 @@ const googleClientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '';
       setSession(payload.email, 'google');
     };
 
+    let googleInitAttempts = 0;
+    const maxGoogleInitAttempts = 20;
+
     const initGoogle = () => {
       if (!googleClientId) {
         if (socialError instanceof HTMLElement) {
@@ -88,8 +91,15 @@ const googleClientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '';
       }
 
       if (!window.google?.accounts?.id) {
+        googleInitAttempts += 1;
+        if (googleInitAttempts < maxGoogleInitAttempts) {
+          window.setTimeout(initGoogle, 250);
+          return;
+        }
+
         if (socialError instanceof HTMLElement) {
-          socialError.textContent = 'No fue posible cargar Google Identity Services.';
+          socialError.textContent =
+            'No fue posible cargar Google Identity Services. Revisa el dominio autorizado en Google Cloud Console.';
           socialError.hidden = false;
         }
         return;
