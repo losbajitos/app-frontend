@@ -1,0 +1,67 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Sistema de postulaciones | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Sistema de postulaciones</h1><a href="/panel">Volver</a></div>
+    <form id="form" class="grid">
+      <label>Vacante<select id="vacanteId"></select></label>
+      <label>Adjuntar CV (URL)<input id="cv" /></label>
+      <label class="full">Carta de presentación<textarea id="carta"></textarea></label>
+      <button type="submit">Postular a vacante</button>
+    </form>
+    <h2>Estado de postulaciones</h2>
+    <div id="list" class="list"></div>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const me = users.find((u) => u.id === session?.userId);
+    if (!me || me.role !== 'postulante') window.location.href = '/login';
+
+    const select = document.querySelector('#vacanteId');
+    const list = document.querySelector('#list');
+    const vacantes = JSON.parse(localStorage.getItem('vacantes') || '[]').filter((v) => v.estado === 'activa');
+
+    const params = new URLSearchParams(window.location.search);
+    const preselect = params.get('vacante');
+
+    if (select) {
+      select.innerHTML = vacantes.map((v) => `<option value="${v.id}">${v.titulo} - ${v.ubicacion}</option>`).join('');
+      if (preselect) select.value = preselect;
+    }
+
+    const getApps = () => JSON.parse(localStorage.getItem('applications') || '[]');
+    const saveApps = (apps) => localStorage.setItem('applications', JSON.stringify(apps));
+
+    const render = () => {
+      const mine = getApps().filter((a) => a.userId === me.id);
+      if (!list) return;
+      list.innerHTML = mine.map((a) => `<article class="row"><strong>${a.titulo}</strong><span>${a.estado}</span></article>`).join('') || '<p class="subtitle">Aún no has postulado.</p>';
+    };
+
+    document.querySelector('#form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const vacante = vacantes.find((v) => v.id === document.querySelector('#vacanteId')?.value);
+      if (!vacante) return;
+      const apps = getApps();
+      apps.push({
+        id: crypto.randomUUID(), userId: me.id, companyId: vacante.companyId, vacanteId: vacante.id,
+        titulo: vacante.titulo, cv: document.querySelector('#cv')?.value || '', carta: document.querySelector('#carta')?.value || '',
+        estado: 'enviada', entrevista: ''
+      });
+      saveApps(apps);
+      e.target.reset();
+      render();
+    });
+
+    render();
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.full,.grid button{grid-column:1/-1}
+    label{display:grid;gap:.3rem;color:var(--muted);font-weight:600}input,select,textarea,button{min-height:42px;border:1px solid var(--border);border-radius:10px;padding:.5rem .75rem;font:inherit}
+    textarea{min-height:96px}button{background:var(--primary);color:#fff;font-weight:700}.list{display:grid;gap:.6rem}.row{border:1px solid var(--border);border-radius:10px;padding:.65rem;display:flex;justify-content:space-between}.subtitle{color:var(--muted)}a{color:var(--primary)}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</Layout>

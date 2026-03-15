@@ -1,0 +1,71 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Panel principal | Talent Match">
+  <main class="container page">
+    <section class="card block">
+      <div class="top">
+        <div>
+          <p class="label">Panel principal</p>
+          <h1>Hola, <span id="name">Usuario</span></h1>
+          <p class="subtitle">Rol: <strong id="role">-</strong> · Login: <strong id="provider">-</strong></p>
+        </div>
+        <button id="logout" type="button">Cerrar sesión</button>
+      </div>
+
+      <div id="menu" class="menu"></div>
+    </section>
+  </main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u) => u.id === session?.userId);
+
+    if (!session || !user) window.location.href = '/login';
+
+    const menuByRole = {
+      postulante: [
+        { href: '/perfil-postulante', label: 'Perfil del postulante' },
+        { href: '/empleos', label: 'Buscador de empleos' },
+        { href: '/postulaciones', label: 'Sistema de postulaciones' },
+        { href: '/panel-postulante', label: 'Panel del postulante' }
+      ],
+      empresa: [
+        { href: '/perfil-empresa', label: 'Perfil de empresa' },
+        { href: '/vacantes', label: 'Publicación de ofertas' },
+        { href: '/ats', label: 'Panel de empresa (ATS)' }
+      ]
+    };
+
+    document.querySelector('#name').textContent = user?.name || 'Usuario';
+    document.querySelector('#role').textContent = user?.role || '-';
+    document.querySelector('#provider').textContent = session?.provider || '-';
+
+    const menu = document.querySelector('#menu');
+    (menuByRole[user.role] || []).forEach((item) => {
+      const link = document.createElement('a');
+      link.href = item.href;
+      link.textContent = item.label;
+      link.className = 'menu-link';
+      menu?.appendChild(link);
+    });
+
+    document.querySelector('#logout')?.addEventListener('click', () => {
+      localStorage.removeItem('session');
+      window.location.href = '/login';
+    });
+  </script>
+
+  <style>
+    .page { min-height: 100vh; padding: 2rem 0; }
+    .block { padding: 1.4rem; }
+    .top { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+    .subtitle { color: var(--muted); }
+    .menu { margin-top: 1rem; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.8rem; }
+    .menu-link { text-decoration: none; border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem; color: var(--primary); font-weight: 700; background: #f8fafc; }
+    button { min-height: 42px; padding: 0 0.8rem; border-radius: 10px; border: 1px solid var(--border); background: white; color: var(--primary); font-weight: 700; }
+    @media (max-width: 720px){ .menu { grid-template-columns: 1fr; } .top { flex-direction: column; align-items: flex-start; } }
+  </style>
+</Layout>

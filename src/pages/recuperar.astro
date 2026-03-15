@@ -1,0 +1,52 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Recuperar contraseña | Talent Match">
+  <main class="container page">
+    <section class="card block">
+      <h1>Recuperación de contraseña</h1>
+      <p class="subtitle">Demo local: establece una nueva contraseña para tu email.</p>
+      <form id="recover-form" class="grid one">
+        <label>Email<input id="email" type="email" required /></label>
+        <label>Nueva contraseña<input id="new-password" type="password" minlength="6" required /></label>
+        <button type="submit">Actualizar contraseña</button>
+      </form>
+      <p id="ok" class="ok" hidden>Contraseña actualizada.</p>
+      <p id="error" class="error" hidden>No existe usuario con ese email.</p>
+      <p class="subtitle"><a href="/login">Volver a login</a></p>
+    </section>
+  </main>
+  <script>
+    const form = document.querySelector('#recover-form');
+    const ok = document.querySelector('#ok');
+    const error = document.querySelector('#error');
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (ok instanceof HTMLElement) ok.hidden = true;
+      if (error instanceof HTMLElement) error.hidden = true;
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const email = document.querySelector('#email')?.value?.trim()?.toLowerCase() || '';
+      const idx = users.findIndex((u) => u.email === email);
+      if (idx < 0) {
+        if (error instanceof HTMLElement) error.hidden = false;
+        return;
+      }
+      users[idx].password = document.querySelector('#new-password')?.value || users[idx].password;
+      localStorage.setItem('users', JSON.stringify(users));
+      if (ok instanceof HTMLElement) ok.hidden = false;
+      form.reset();
+    });
+  </script>
+  <style>
+    .page { min-height: 100vh; display: grid; place-items: center; }
+    .block { width: min(520px, 100%); padding: 1.5rem; }
+    .grid { display: grid; gap: 0.8rem; }
+    label { display: grid; gap: 0.3rem; color: var(--muted); font-weight: 600; }
+    input, button { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); padding: 0 0.75rem; }
+    button { background: var(--primary); color: white; font-weight: 700; }
+    .ok { color: var(--success); font-weight: 700; }
+    .error { color: var(--danger); font-weight: 700; }
+    .subtitle { color: var(--muted); }
+  </style>
+</Layout>

@@ -1,0 +1,111 @@
+---
+import Layout from '../layouts/Layout.astro';
+const googleClientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '';
+---
+
+<Layout title="Login | Talent Match">
+  <main class="container page">
+    <section class="card block">
+      <p class="label">Autenticación</p>
+      <h1>Iniciar sesión</h1>
+      <form id="login-form" class="grid one">
+        <label>Email<input id="email" type="email" required /></label>
+        <label>Contraseña<input id="password" type="password" required /></label>
+        <button type="submit">Entrar</button>
+      </form>
+      <div class="divider"><span>o con</span></div>
+      <button id="google-login" class="google" type="button">Google OAuth2</button>
+      <p id="social-error" class="error" hidden></p>
+      <p id="error" class="error" hidden>Credenciales incorrectas.</p>
+      <p class="hint"><a href="/recuperar">¿Olvidaste tu contraseña?</a></p>
+      <p class="hint"><a href="/registro">Crear cuenta</a></p>
+      <p class="hint">Demo: admin@talent.com / 123456</p>
+    </section>
+  </main>
+
+  <script is:inline define:vars={{ googleClientId }}>
+    const ensureAdmin = () => {
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      if (!users.some((u) => u.email === 'admin@talent.com')) {
+        users.push({ id: 'admin-seed', name: 'Admin', email: 'admin@talent.com', password: '123456', role: 'empresa', profile: {}, companyProfile: {} });
+        localStorage.setItem('users', JSON.stringify(users));
+      }
+    };
+
+    const setSession = (user, provider = 'local') => {
+      localStorage.setItem('session', JSON.stringify({ userId: user.id, provider }));
+      window.location.href = '/panel';
+    };
+
+    const decodeJwt = (token) => {
+      const payload = token.split('.')[1];
+      return payload ? JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) : null;
+    };
+
+    ensureAdmin();
+
+    const form = document.querySelector('#login-form');
+    const error = document.querySelector('#error');
+    const socialError = document.querySelector('#social-error');
+    const googleButton = document.querySelector('#google-login');
+
+    if (localStorage.getItem('session')) window.location.href = '/panel';
+
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const email = document.querySelector('#email')?.value?.trim()?.toLowerCase() || '';
+      const password = document.querySelector('#password')?.value || '';
+      const user = users.find((u) => u.email === email && u.password === password);
+      if (user) return setSession(user, 'local');
+      if (error instanceof HTMLElement) error.hidden = false;
+    });
+
+    const initGoogle = () => {
+      if (!googleClientId) {
+        if (socialError instanceof HTMLElement) {
+          socialError.textContent = 'Configura PUBLIC_GOOGLE_CLIENT_ID para Google OAuth2.';
+          socialError.hidden = false;
+        }
+        if (googleButton instanceof HTMLButtonElement) googleButton.disabled = true;
+        return;
+      }
+      if (!window.google?.accounts?.id) return;
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          const payload = decodeJwt(response.credential);
+          const email = payload?.email?.toLowerCase();
+          if (!email) return;
+          const users = JSON.parse(localStorage.getItem('users') || '[]');
+          let user = users.find((u) => u.email === email);
+          if (!user) {
+            user = { id: crypto.randomUUID(), name: payload.name || email, email, password: '', role: 'postulante', profile: {}, companyProfile: {} };
+            users.push(user);
+            localStorage.setItem('users', JSON.stringify(users));
+          }
+          setSession(user, 'google');
+        }
+      });
+      googleButton?.addEventListener('click', () => window.google.accounts.id.prompt());
+    };
+
+    initGoogle();
+  </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    .page { min-height: 100vh; display: grid; place-items: center; padding: 2rem 0; }
+    .block { width: min(520px, 100%); padding: 1.5rem; }
+    .grid { display: grid; gap: 0.8rem; margin-top: 1rem; }
+    label { display: grid; gap: 0.3rem; color: var(--muted); font-weight: 600; }
+    input, button { min-height: 42px; border: 1px solid var(--border); border-radius: 10px; padding: 0 0.75rem; font: inherit; }
+    button { background: var(--primary); color: white; border-color: var(--primary); font-weight: 700; }
+    .google { background: #fff; color: #111; border-color: var(--border); }
+    .divider { text-align: center; color: var(--muted); margin: 0.7rem 0; }
+    .error { color: var(--danger); font-weight: 700; }
+    .hint { color: var(--muted); margin: 0.35rem 0; }
+    a { color: var(--primary); }
+  </style>
+</Layout>

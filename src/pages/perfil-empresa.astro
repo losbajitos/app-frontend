@@ -1,0 +1,53 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Perfil empresa | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Perfil de empresa</h1><a href="/panel">Volver</a></div>
+    <form id="form" class="grid">
+      <label>Información de la empresa<input id="nombreEmpresa" /></label>
+      <label>Logo (URL)<input id="logo" /></label>
+      <label>Descripción<textarea id="descripcion"></textarea></label>
+      <label>Industria<input id="industria" /></label>
+      <label>Tamaño de empresa<input id="tamano" /></label>
+      <label>Ubicación<input id="ubicacion" /></label>
+      <label>Página web<input id="web" /></label>
+      <label>Reclutadores asociados<textarea id="reclutadores" placeholder="ana@empresa.com, pedro@empresa.com"></textarea></label>
+      <button type="submit">Guardar perfil</button>
+    </form>
+    <p id="ok" class="ok" hidden>Perfil de empresa guardado.</p>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const idx = users.findIndex((u) => u.id === session?.userId);
+    if (!session || idx < 0 || users[idx].role !== 'empresa') window.location.href = '/login';
+
+    const profile = users[idx].companyProfile || {};
+    Object.entries(profile).forEach(([k,v]) => { const el = document.querySelector(`#${k}`); if (el) el.value = String(v || ''); });
+
+    document.querySelector('#form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      users[idx].companyProfile = {
+        nombreEmpresa: document.querySelector('#nombreEmpresa')?.value || '',
+        logo: document.querySelector('#logo')?.value || '',
+        descripcion: document.querySelector('#descripcion')?.value || '',
+        industria: document.querySelector('#industria')?.value || '',
+        tamano: document.querySelector('#tamano')?.value || '',
+        ubicacion: document.querySelector('#ubicacion')?.value || '',
+        web: document.querySelector('#web')?.value || '',
+        reclutadores: document.querySelector('#reclutadores')?.value || ''
+      };
+      localStorage.setItem('users', JSON.stringify(users));
+      const ok = document.querySelector('#ok');
+      if (ok instanceof HTMLElement) ok.hidden = false;
+    });
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.grid button{grid-column:1/-1}
+    label{display:grid;gap:.3rem;color:var(--muted);font-weight:600}input,textarea,button{border:1px solid var(--border);border-radius:10px;min-height:42px;padding:.5rem .75rem;font:inherit}
+    textarea{min-height:96px}button{background:var(--primary);color:white;font-weight:700}.ok{color:var(--success);font-weight:700}a{color:var(--primary)}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</Layout>

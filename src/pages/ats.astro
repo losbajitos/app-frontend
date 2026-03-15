@@ -1,0 +1,76 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="ATS básico | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Panel de empresa (ATS básico)</h1><a href="/panel">Volver</a></div>
+    <div class="filters">
+      <input id="q" placeholder="Filtrar por candidato o vacante" />
+      <select id="estado"><option value="">Todos</option><option>enviada</option><option>en revisión</option><option>entrevista</option><option>rechazado</option><option>contratado</option></select>
+      <button id="apply" type="button">Filtrar</button>
+    </div>
+    <div id="list" class="list"></div>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const me = users.find((u) => u.id === session?.userId);
+    if (!me || me.role !== 'empresa') window.location.href = '/login';
+
+    const list = document.querySelector('#list');
+    const userById = Object.fromEntries(users.map((u) => [u.id, u]));
+
+    const render = () => {
+      const q = document.querySelector('#q')?.value?.toLowerCase() || '';
+      const estado = document.querySelector('#estado')?.value || '';
+      const apps = JSON.parse(localStorage.getItem('applications') || '[]')
+        .filter((a) => a.companyId === me.id)
+        .filter((a) => (!estado || a.estado === estado) && (!q || `${a.titulo} ${(userById[a.userId]?.name || '')}`.toLowerCase().includes(q)));
+
+      if (!list) return;
+      list.innerHTML = apps.map((a) => `
+        <article class="row">
+          <div>
+            <h3>${userById[a.userId]?.name || 'Candidato'} · ${a.titulo}</h3>
+            <p>Estado: <strong>${a.estado}</strong> ${a.entrevista ? '· Entrevista: ' + a.entrevista : ''}</p>
+            <a href="${a.cv || '#'}" ${a.cv ? 'target="_blank"' : ''}>Ver/Descargar CV</a>
+          </div>
+          <div class="actions">
+            <select data-id="${a.id}" data-kind="status">
+              <option ${a.estado==='enviada'?'selected':''}>enviada</option>
+              <option ${a.estado==='en revisión'?'selected':''}>en revisión</option>
+              <option ${a.estado==='entrevista'?'selected':''}>entrevista</option>
+              <option ${a.estado==='rechazado'?'selected':''}>rechazado</option>
+              <option ${a.estado==='contratado'?'selected':''}>contratado</option>
+            </select>
+            <input data-id="${a.id}" data-kind="interview" type="datetime-local" value="${a.entrevista || ''}" />
+          </div>
+        </article>
+      `).join('') || '<p class="subtitle">No hay postulantes para mostrar.</p>';
+    };
+
+    document.querySelector('#apply')?.addEventListener('click', render);
+
+    list?.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
+      const id = target.dataset.id;
+      const kind = target.dataset.kind;
+      const apps = JSON.parse(localStorage.getItem('applications') || '[]');
+      const idx = apps.findIndex((a) => a.id === id);
+      if (idx < 0) return;
+      if (kind === 'status') apps[idx].estado = target.value;
+      if (kind === 'interview') apps[idx].entrevista = target.value;
+      localStorage.setItem('applications', JSON.stringify(apps));
+    });
+
+    render();
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.filters{display:grid;grid-template-columns:2fr 1fr auto;gap:.6rem}
+    input,select,button{min-height:40px;border:1px solid var(--border);border-radius:9px;padding:0 .65rem}button{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+    .list{display:grid;gap:.7rem;margin-top:1rem}.row{border:1px solid var(--border);border-radius:10px;padding:.7rem;display:flex;justify-content:space-between;gap:1rem}.row p{color:var(--muted)}.actions{display:grid;gap:.45rem;min-width:220px}.subtitle{color:var(--muted)}a{color:var(--primary)}@media(max-width:850px){.filters{grid-template-columns:1fr}.row{flex-direction:column}.actions{min-width:0}}
+  </style>
+</Layout>

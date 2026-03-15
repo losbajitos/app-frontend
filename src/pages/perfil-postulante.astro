@@ -1,0 +1,57 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Perfil postulante | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Perfil del postulante</h1><a href="/panel">Volver</a></div>
+    <form id="form" class="grid">
+      <label>Datos personales<textarea id="datos" placeholder="Nombre, teléfono, ciudad"></textarea></label>
+      <label>CV / currículum (URL)<input id="cv" /></label>
+      <label>Experiencia laboral<textarea id="experiencia"></textarea></label>
+      <label>Educación<textarea id="educacion"></textarea></label>
+      <label>Habilidades<input id="habilidades" placeholder="JS, Comunicación, Liderazgo" /></label>
+      <label>Portafolio (URL)<input id="portafolio" /></label>
+      <label>Idiomas<input id="idiomas" placeholder="Español, Inglés" /></label>
+      <label>Disponibilidad laboral<select id="disponibilidad"><option>Inmediata</option><option>2 semanas</option><option>1 mes</option></select></label>
+      <button type="submit">Guardar perfil</button>
+    </form>
+    <p id="ok" class="ok" hidden>Perfil guardado.</p>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const idx = users.findIndex((u) => u.id === session?.userId);
+    if (!session || idx < 0 || users[idx].role !== 'postulante') window.location.href = '/login';
+
+    const profile = users[idx].profile || {};
+    for (const [key, val] of Object.entries(profile)) {
+      const input = document.querySelector(`#${key}`);
+      if (input) input.value = String(val || '');
+    }
+
+    const form = document.querySelector('#form');
+    const ok = document.querySelector('#ok');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      users[idx].profile = {
+        datos: document.querySelector('#datos')?.value || '',
+        cv: document.querySelector('#cv')?.value || '',
+        experiencia: document.querySelector('#experiencia')?.value || '',
+        educacion: document.querySelector('#educacion')?.value || '',
+        habilidades: document.querySelector('#habilidades')?.value || '',
+        portafolio: document.querySelector('#portafolio')?.value || '',
+        idiomas: document.querySelector('#idiomas')?.value || '',
+        disponibilidad: document.querySelector('#disponibilidad')?.value || 'Inmediata'
+      };
+      localStorage.setItem('users', JSON.stringify(users));
+      if (ok instanceof HTMLElement) ok.hidden = false;
+    });
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.grid button{grid-column:1/-1}
+    label{display:grid;gap:.3rem;color:var(--muted);font-weight:600}input,textarea,select,button{border:1px solid var(--border);border-radius:10px;min-height:42px;padding:.5rem .75rem;font:inherit}
+    textarea{min-height:96px}button{background:var(--primary);color:white;font-weight:700}.ok{color:var(--success);font-weight:700}a{color:var(--primary)}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</Layout>

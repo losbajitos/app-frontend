@@ -1,0 +1,38 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Panel del postulante | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Panel del postulante</h1><a href="/panel">Volver</a></div>
+    <h2>Vacantes guardadas</h2>
+    <div id="saved" class="list"></div>
+    <h2>Historial de postulaciones</h2>
+    <div id="history" class="list"></div>
+    <h2>Notificaciones</h2>
+    <div id="notifications" class="list"></div>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const me = users.find((u) => u.id === session?.userId);
+    if (!me || me.role !== 'postulante') window.location.href = '/login';
+
+    const vacantes = JSON.parse(localStorage.getItem('vacantes') || '[]');
+    const apps = JSON.parse(localStorage.getItem('applications') || '[]').filter((a) => a.userId === me.id);
+    const savedIds = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+
+    const saved = vacantes.filter((v) => savedIds.includes(v.id));
+    document.querySelector('#saved').innerHTML = saved.map((v) => `<article class="row"><strong>${v.titulo}</strong><span>${v.ubicacion} · ${v.modalidad}</span></article>`).join('') || '<p class="subtitle">No tienes vacantes guardadas.</p>';
+
+    document.querySelector('#history').innerHTML = apps.map((a) => `<article class="row"><strong>${a.titulo}</strong><span>${a.estado}</span></article>`).join('') || '<p class="subtitle">No has postulado todavía.</p>';
+
+    const notifs = apps.filter((a) => ['entrevista','rechazado','contratado'].includes(a.estado));
+    document.querySelector('#notifications').innerHTML = notifs.map((n) => `<article class="row"><strong>${n.titulo}</strong><span>Estado actualizado: ${n.estado}</span></article>`).join('') || '<p class="subtitle">Sin notificaciones nuevas.</p>';
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.list{display:grid;gap:.6rem;margin-bottom:1rem}
+    .row{border:1px solid var(--border);border-radius:10px;padding:.65rem;display:flex;justify-content:space-between;gap:1rem}.subtitle{color:var(--muted)}a{color:var(--primary)}@media(max-width:720px){.row{flex-direction:column}}
+  </style>
+</Layout>

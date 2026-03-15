@@ -1,0 +1,68 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Vacantes | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Publicación de ofertas laborales</h1><a href="/panel">Volver</a></div>
+    <form id="form" class="grid">
+      <label>Título del puesto<input id="titulo" required /></label>
+      <label>Requisitos<input id="requisitos" required /></label>
+      <label>Salario<input id="salario" type="number" min="0" /></label>
+      <label>Modalidad<select id="modalidad"><option>remoto</option><option>híbrido</option><option>presencial</option></select></label>
+      <label>Ubicación<input id="ubicacion" required /></label>
+      <label>Experiencia<input id="experiencia" placeholder="2 años" /></label>
+      <label>Tipo de contrato<select id="contrato"><option>Tiempo completo</option><option>Part-time</option><option>Freelance</option></select></label>
+      <label>Fecha de cierre<input id="cierre" type="date" /></label>
+      <label>Estado de vacante<select id="estado"><option>activa</option><option>cerrada</option></select></label>
+      <label class="full">Descripción<textarea id="descripcion"></textarea></label>
+      <button type="submit">Crear vacante</button>
+    </form>
+    <div id="list" class="list"></div>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const me = users.find((u) => u.id === session?.userId);
+    if (!me || me.role !== 'empresa') window.location.href = '/login';
+
+    const getVac = () => JSON.parse(localStorage.getItem('vacantes') || '[]');
+    const saveVac = (items) => localStorage.setItem('vacantes', JSON.stringify(items));
+
+    const render = () => {
+      const list = document.querySelector('#list');
+      if (!list) return;
+      const vacantes = getVac().filter((v) => v.companyId === me.id);
+      list.innerHTML = vacantes.map((v) => `<article class="row"><strong>${v.titulo}</strong><span>${v.modalidad} · ${v.ubicacion} · ${v.estado}</span></article>`).join('') || '<p class="muted">Sin vacantes aún.</p>';
+    };
+
+    document.querySelector('#form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const vacantes = getVac();
+      vacantes.push({
+        id: crypto.randomUUID(), companyId: me.id,
+        titulo: document.querySelector('#titulo')?.value || '',
+        descripcion: document.querySelector('#descripcion')?.value || '',
+        requisitos: document.querySelector('#requisitos')?.value || '',
+        salario: Number(document.querySelector('#salario')?.value || 0),
+        modalidad: document.querySelector('#modalidad')?.value || 'remoto',
+        ubicacion: document.querySelector('#ubicacion')?.value || '',
+        experiencia: document.querySelector('#experiencia')?.value || '',
+        contrato: document.querySelector('#contrato')?.value || 'Tiempo completo',
+        cierre: document.querySelector('#cierre')?.value || '',
+        estado: document.querySelector('#estado')?.value || 'activa'
+      });
+      saveVac(vacantes);
+      e.target.reset();
+      render();
+    });
+
+    render();
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}
+    .full{grid-column:1/-1}.grid button{grid-column:1/-1}label{display:grid;gap:.3rem;color:var(--muted);font-weight:600}input,select,textarea,button{border:1px solid var(--border);border-radius:10px;min-height:42px;padding:.5rem .75rem;font:inherit}
+    textarea{min-height:90px}button{background:var(--primary);color:#fff;font-weight:700}.list{margin-top:1rem;display:grid;gap:.6rem}.row{border:1px solid var(--border);padding:.7rem;border-radius:10px;display:flex;justify-content:space-between;gap:1rem}.muted{color:var(--muted)}a{color:var(--primary)}@media(max-width:720px){.grid{grid-template-columns:1fr}.row{flex-direction:column}}
+  </style>
+</Layout>

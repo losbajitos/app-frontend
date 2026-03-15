@@ -1,0 +1,75 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Buscador de empleos | Talent Match">
+  <main class="container page"><section class="card block">
+    <div class="head"><h1>Buscador de empleos</h1><a href="/panel">Volver</a></div>
+    <div class="filters">
+      <input id="q" placeholder="Palabra clave" />
+      <input id="ciudad" placeholder="Ciudad" />
+      <input id="salario" placeholder="Salario mínimo" type="number" min="0" />
+      <select id="modalidad"><option value="">Modalidad</option><option>remoto</option><option>híbrido</option><option>presencial</option></select>
+      <input id="experiencia" placeholder="Experiencia" />
+      <input id="contrato" placeholder="Tipo de contrato" />
+      <button id="search" type="button">Buscar</button>
+    </div>
+    <p class="subtitle">Recomendaciones: mostramos vacantes activas que coinciden con tus filtros.</p>
+    <div id="list" class="list"></div>
+  </section></main>
+
+  <script>
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const me = users.find((u) => u.id === session?.userId);
+    if (!me || me.role !== 'postulante') window.location.href = '/login';
+
+    const list = document.querySelector('#list');
+    const getVacantes = () => JSON.parse(localStorage.getItem('vacantes') || '[]').filter((v) => v.estado === 'activa');
+
+    const render = () => {
+      const q = document.querySelector('#q')?.value?.toLowerCase() || '';
+      const ciudad = document.querySelector('#ciudad')?.value?.toLowerCase() || '';
+      const salario = Number(document.querySelector('#salario')?.value || 0);
+      const modalidad = document.querySelector('#modalidad')?.value || '';
+      const experiencia = document.querySelector('#experiencia')?.value?.toLowerCase() || '';
+      const contrato = document.querySelector('#contrato')?.value?.toLowerCase() || '';
+
+      const vacantes = getVacantes().filter((v) => {
+        return (!q || `${v.titulo} ${v.descripcion} ${v.requisitos}`.toLowerCase().includes(q))
+          && (!ciudad || v.ubicacion.toLowerCase().includes(ciudad))
+          && (!salario || Number(v.salario || 0) >= salario)
+          && (!modalidad || v.modalidad === modalidad)
+          && (!experiencia || (v.experiencia || '').toLowerCase().includes(experiencia))
+          && (!contrato || (v.contrato || '').toLowerCase().includes(contrato));
+      });
+
+      if (!list) return;
+      list.innerHTML = vacantes.map((v) => `
+        <article class="row">
+          <div><h3>${v.titulo}</h3><p>${v.ubicacion} · ${v.modalidad} · $${v.salario}</p></div>
+          <div class="actions"><button data-id="${v.id}" data-action="save">Guardar</button><a href="/postulaciones?vacante=${v.id}">Postular</a></div>
+        </article>
+      `).join('') || '<p class="subtitle">No se encontraron vacantes.</p>';
+    };
+
+    document.querySelector('#search')?.addEventListener('click', render);
+    list?.addEventListener('click', (event) => {
+      const btn = event.target;
+      if (!(btn instanceof HTMLButtonElement)) return;
+      if (btn.dataset.action !== 'save') return;
+      const saved = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+      if (!saved.includes(btn.dataset.id)) saved.push(btn.dataset.id);
+      localStorage.setItem('savedJobs', JSON.stringify(saved));
+      btn.textContent = 'Guardada';
+    });
+
+    render();
+  </script>
+
+  <style>
+    .page{min-height:100vh;padding:2rem 0}.block{padding:1.2rem}.head{display:flex;justify-content:space-between}.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem}
+    input,select,button{min-height:40px;border:1px solid var(--border);border-radius:9px;padding:0 .65rem}button{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+    .subtitle{color:var(--muted)}.list{display:grid;gap:.7rem}.row{border:1px solid var(--border);border-radius:10px;padding:.75rem;display:flex;justify-content:space-between;gap:1rem}
+    .row h3{margin:0 0 .25rem}.row p{margin:0;color:var(--muted)}.actions{display:flex;gap:.5rem;align-items:center}a{color:var(--primary)}@media(max-width:900px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.filters{grid-template-columns:1fr}.row{flex-direction:column}}
+  </style>
+</Layout>
